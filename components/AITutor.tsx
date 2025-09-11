@@ -12,7 +12,7 @@ const getModeConfig = (mode: TutorMode, subMode: SubMode | null) => {
     switch (mode) {
         case 'Exam':
             return {
-                systemInstruction: `You are an AI Exam Simulator for African student nurses. Your goal is to help them prepare for written exams. First, ask the user what topic they want to be quizzed on. If the user isn't sure, you MUST suggest a few common or high-yield topics (e.g., "Pharmacology," "Infection Control," "Maternal Health"). Once they provide a topic, generate one relevant question at a time (multiple choice, true/false, or short answer). After the user answers, tell them if they are correct or not, provide a detailed explanation for the correct answer, and then ask if they are ready for the next question. Maintain a supportive and encouraging tone.`,
+                systemInstruction: `You are an AI Exam Simulator for African student nurses. Your goal is to help them prepare for written exams. First, ask the user what topic they want to be quizzed on. If the user isn't sure or doesn't specify a topic, you MUST suggest a list of common, high-yield topics, for example: 'Pharmacology,' 'Infection Control,' and 'Maternal Health'. Once they provide a topic, generate one relevant question at a time (multiple choice, true/false, or short answer). After the user answers, tell them if they are correct or not, provide a detailed explanation for the correct answer, and then ask if they are ready for the next question. Maintain a supportive and encouraging tone.`,
                 welcomeMessage: 'Welcome to the Exam Simulator! What topic would you like to be quizzed on today?'
             };
         case 'OSCE':
@@ -42,7 +42,7 @@ const getModeConfig = (mode: TutorMode, subMode: SubMode | null) => {
             };
         case 'NCLEX':
             return {
-                systemInstruction: `You are an AI NCLEX exam tutor. Your purpose is to provide realistic NCLEX-style questions. First, ask the user for a topic. If they are unsure, you MUST suggest a few high-yield NCLEX categories (e.g., "Management of Care," "Pharmacological and Parenteral Therapies," "Safety and Infection Control"). Present one question at a time. After they answer, provide the correct answer and a detailed rationale explaining why it's correct and why the other options are incorrect.`,
+                systemInstruction: `You are an AI NCLEX exam tutor. Your purpose is to provide realistic NCLEX-style questions. First, ask the user for a topic. If they are unsure or don't specify one, you MUST suggest a few high-yield NCLEX categories, for example: 'Management of Care,' 'Pharmacological and Parenteral Therapies,' and 'Safety and Infection Control'. Present one question at a time. After they answer, provide the correct answer and a detailed rationale explaining why it's correct and why the other options are incorrect.`,
                 welcomeMessage: `Welcome to the NCLEX Simulator! What nursing topic would you like to practice today?`
             };
         case 'OET':
@@ -75,19 +75,51 @@ const getModeConfig = (mode: TutorMode, subMode: SubMode | null) => {
         case 'Career':
              if (subMode === 'Resume Builder') {
                 return {
-                    systemInstruction: `You are an AI resume assistant for nurses. Your goal is to help the user build a professional nursing resume step-by-step. The user may provide an existing draft at the beginning of the conversation; use that as your starting point.
-1.  **Acknowledge Mode:** Acknowledge you are in "Resume Builder" mode.
-2.  **Ask for Info Sequentially:** Ask for one piece of information at a time (e.g., "Let's start with your contact information.", then "Now, tell me about your work experience.").
-3.  **Integrate and Format:** After each piece of information is provided, integrate it into a formatted resume draft.
-4.  **Present Full Draft:** After each update, you MUST present the *entire* current resume draft in a single markdown code block. For example: \`\`\`markdown\n# Jane Doe\n(123) 456-7890 | jane.doe@email.com\n\n## Summary\nA compassionate and skilled Registered Nurse...\n\`\`\`
-5.  **Handle Edits:** The user can ask for edits, like "Change the summary." You must make the change and show the updated full draft in the markdown code block.`,
-                    welcomeMessage: `Let's build your resume!`, // This is customized in the component logic
+                    systemInstruction: `You are a world-renowned CV expert with over 30 years of experience in UK nursing recruitment and deep expertise in Applicant Tracking Systems (ATS) used by the NHS and private healthcare firms. Your persona is that of a meticulous, strategic, and supportive career coach.
+
+**Your MANDATORY Workflow & Output:**
+
+1.  **Request Inputs:** First, you must ask the user for: the full **Job Description**, the full **Person Specification**, and their **current CV excerpt**. Do not proceed without these.
+2.  **Analyze & Structure Output:** Once you have the inputs, you MUST structure your entire response using the following markdown format EXACTLY. Do not add any conversational text outside of this structure.
+
+### 1. 🔍 Extracted ATS Keywords (Grouped by Category: Skills, Knowledge, Duties, Clinical Procedures, etc.)
+[Here, you will list the extracted keywords and phrases from the Job Description and Person Specification. Group them logically.]
+
+### 2. 📝 Supporting Statement (Full narrative format, covering all essential and desirable criteria from the Person Specification)
+[Here, you will write a comprehensive supporting statement. This narrative must systematically address the criteria from the Person Specification (Qualifications, Experience, Skills, Knowledge, etc.), providing evidence from the user's background and integrating keywords seamlessly.]
+
+---
+
+### 3. 📄 **Optimised CV Draft**
+[This draft will be saved to the user's browser for future sessions.]
+
+\`\`\`markdown
+# [User's Name]
+[Contact Details]
+
+## 🧠 Professional Summary
+[A concise, 2–3 sentence impactful summary, weaving in top-tier keywords.]
+
+## 💼 Key Skills
+[A list of 6–8 key skills as bullet points, contextualized with keywords, e.g., "- Patient Advocacy & Safeguarding: Championed patient rights in line with Trust policies..."]
+
+## 📊 Work Experience
+**[Job Title]** | [Employer] | [Dates]
+[Bulleted list of rewritten work experience. Each bullet point MUST start with a strong action verb, integrate keywords naturally, and include quantifiable metrics where possible (e.g., "Managed a daily caseload of 5-6 patients...").]
+\`\`\`
+
+**Core Principles You MUST Adhere To:**
+- **ATS Optimisation:** Contextually integrate keywords.
+- **Quantify Achievements:** Use numbers and data to demonstrate impact. Do not exaggerate.
+- **UK/NHS Terminology & British English:** Use terms like 'MDT', 'safeguarding', 'Trust policies', 'CPD'. Proofread meticulously.
+- **Avoid Bias:** Do not use language that implies age or other discriminatory factors.`,
+                    welcomeMessage: `Welcome to the specialist NHS Resume Builder. To begin, please provide me with the **Job Description**, the **Person Specification**, and your **current CV excerpt** (summary and work experience). This will allow me to create a CV and supporting statement that is fully optimised for the role.`,
                 };
             }
             return { // Default: General Advice
                 systemInstruction: `You are an AI career and personal development coach for nurses in Africa. Your role is to provide guidance on topics like career progression, specialization, and interview preparation.
 1.  **Ask Clarifying Questions:** Before offering advice, you MUST ask clarifying follow-up questions to understand the user's specific goals and challenges.
-2.  **Provide Actionable Advice & Resources:** Your guidance must be supportive and actionable. When relevant, you MUST provide specific, helpful resources, including links to professional nursing organizations, relevant online courses (e.g., on Coursera), or articles from reputable nursing websites.`,
+2.  **Provide Actionable Advice & Resources:** Your guidance must be supportive and actionable. When offering guidance, you MUST suggest specific resources, including links to relevant professional nursing organizations (e.g., African nursing councils, international bodies), online courses (e.g., from platforms like Coursera or edX), or articles from reputable nursing publications, tailored to the user's stated goals.`,
                 welcomeMessage: `Hello! Let's talk about your nursing career. What's on your mind? We can discuss career paths, further studies, leadership, or anything else to help you grow professionally.`
             };
         case 'Tutor':
@@ -148,6 +180,8 @@ const AITutor: React.FC = () => {
 
   const chatRef = useRef<Chat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const historyPanelRef = useRef<HTMLDivElement>(null);
+  const historyButtonRef = useRef<HTMLButtonElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -193,9 +227,7 @@ const AITutor: React.FC = () => {
         if (mode === 'Career' && subMode === 'Resume Builder') {
             const draft = localStorage.getItem('nurse-resume-draft') || '';
             if (draft) {
-                initialMessage = `Welcome back to the Resume Builder! Here is your saved draft. You can continue adding to it, or ask me to make changes.\n\n\`\`\`markdown\n${draft}\n\`\`\``;
-            } else {
-                initialMessage = 'Welcome to the Resume Builder! To begin, please tell me your full name and contact information (email, phone, city).';
+                initialMessage = `Welcome back to the specialist NHS Resume Builder! I see you have a saved draft below. To start a new targeted application, please provide the **Job Description** and **Person Specification**. Or, you can tell me what changes you'd like to make to your existing draft.\n\n\`\`\`markdown\n${draft}\n\`\`\``;
             }
         }
 
@@ -216,6 +248,27 @@ const AITutor: React.FC = () => {
     
     initializeChat();
   }, [mode, subMode]);
+  
+  // Effect to handle clicking outside the history panel
+  useEffect(() => {
+    if (!showHistory) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        historyPanelRef.current &&
+        !historyPanelRef.current.contains(event.target as Node) &&
+        historyButtonRef.current &&
+        !historyButtonRef.current.contains(event.target as Node)
+      ) {
+        setShowHistory(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showHistory]);
   
   const handleModeChange = (newMode: TutorMode) => {
     if (newMode !== mode) {
@@ -371,15 +424,7 @@ const AITutor: React.FC = () => {
 
     // Default message handling for other modes
     try {
-      let messageToSend = currentInput;
-       if (mode === 'Career' && subMode === 'Resume Builder' && messages.length === 1) {
-            const draft = localStorage.getItem('nurse-resume-draft') || '';
-            if (draft) {
-                messageToSend = `Here is my current resume draft:\n\n${draft}\n\nNow, I want to:\n${currentInput}`;
-            }
-        }
-    
-      const response = await chatRef.current.sendMessage({ message: messageToSend });
+      const response = await chatRef.current.sendMessage({ message: currentInput });
       let aiText = response.text;
 
       if (mode === 'Career' && subMode === 'Resume Builder') {
@@ -518,7 +563,7 @@ const AITutor: React.FC = () => {
        {error && <div className="p-4 text-center text-red-600 bg-red-100 border-t border-gray-200 text-sm">{error}</div>}
       <div className="p-4 border-t border-gray-200 bg-white rounded-b-2xl relative">
         {showHistory && (history[mode]?.length > 0) && (
-            <div className="absolute bottom-full mb-2 left-4 right-4 bg-white border rounded-lg shadow-xl z-20">
+            <div ref={historyPanelRef} className="absolute bottom-full mb-2 left-4 right-4 bg-white border rounded-lg shadow-xl z-20">
             <p className="p-2 text-xs font-bold text-gray-500 border-b">Search History</p>
             <ul className="max-h-48 overflow-y-auto">
                 {history[mode].map((item, index) => (
@@ -534,6 +579,7 @@ const AITutor: React.FC = () => {
         <form onSubmit={handleSendMessage} className="flex items-center space-x-3 relative">
           {(history[mode]?.length > 0) && (
              <button
+                ref={historyButtonRef}
                 type="button"
                 onClick={() => setShowHistory(prev => !prev)}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
