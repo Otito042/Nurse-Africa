@@ -1,5 +1,5 @@
 import React from 'react';
-import { TutorMode, OSCESubModes, NMCCBTSubModes, OSCESubMode, NMCCBTSubMode } from '../types';
+import { TutorMode, OSCESubModes, NMCCBTSubModes, CareerSubModes, SubMode } from '../types';
 import { BookIcon } from './icons/BookIcon';
 import { ExamIcon } from './icons/ExamIcon';
 import { OSCEIcon } from './icons/OSCEIcon';
@@ -12,9 +12,9 @@ import { CareerIcon } from './icons/CareerIcon';
 
 interface ModeSelectorProps {
   currentMode: TutorMode;
-  currentSubMode: OSCESubMode | NMCCBTSubMode | null;
+  currentSubMode: SubMode | null;
   onModeChange: (mode: TutorMode) => void;
-  onSubModeChange: (subMode: OSCESubMode | NMCCBTSubMode) => void;
+  onSubModeChange: (subMode: SubMode) => void;
 }
 
 interface ModeConfig {
@@ -33,7 +33,7 @@ const modes: ModeConfig[] = [
   { id: 'OET', label: 'OET Prep', icon: LanguageIcon },
   { id: 'IELTS', label: 'IELTS Prep', icon: LanguageIcon },
   { id: 'Jobs', label: 'Job List', icon: JobsIcon },
-  { id: 'Career', label: 'Career Dev', icon: CareerIcon },
+  { id: 'Career', label: 'Career Dev', icon: CareerIcon, subModes: CareerSubModes },
 ];
 
 const ModeSelector: React.FC<ModeSelectorProps> = ({ currentMode, currentSubMode, onModeChange, onSubModeChange }) => {

@@ -25,3 +25,8 @@ export type OSCESubMode = (typeof OSCESubModes)[number];
 
 export const NMCCBTSubModes = ['Adult', 'Mental', 'Midwife', 'Pediatrics', 'Learning Disability'] as const;
 export type NMCCBTSubMode = (typeof NMCCBTSubModes)[number];
+
+export const CareerSubModes = ['General Advice', 'Resume Builder'] as const;
+export type CareerSubMode = (typeof CareerSubModes)[number];
+
+export type SubMode = OSCESubMode | NMCCBTSubMode | CareerSubMode;

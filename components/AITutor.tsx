@@ -1,17 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI, Chat } from '@google/genai';
-import { Message, MessageSender, TutorMode, OSCESubMode, NMCCBTSubMode } from '../types';
+import { GoogleGenAI, Chat, Type } from '@google/genai';
+import { Message, MessageSender, TutorMode, SubMode, CareerSubModes } from '../types';
 import { UserIcon } from './icons/UserIcon';
 import { BotIcon } from './icons/BotIcon';
 import { SendIcon } from './icons/SendIcon';
 import ModeSelector from './ModeSelector';
+import { HistoryIcon } from './icons/HistoryIcon';
+import { SpeakerIcon } from './icons/SpeakerIcon';
 
-const getModeConfig = (mode: TutorMode, subMode: OSCESubMode | NMCCBTSubMode | null) => {
+const getModeConfig = (mode: TutorMode, subMode: SubMode | null) => {
     switch (mode) {
         case 'Exam':
             return {
-                systemInstruction: `You are an AI Exam Simulator for African student nurses. Your goal is to help them prepare for written exams. First, ask the user what topic they want to be quizzed on. Once they provide a topic, generate one relevant question at a time (multiple choice, true/false, or short answer). After the user answers, tell them if they are correct or not, provide a detailed explanation for the correct answer, and then ask if they are ready for the next question. Maintain a supportive and encouraging tone.`,
-                welcomeMessage: 'Welcome to the Exam Simulator! What topic would you like to be quizzed on today? For example, "pharmacology" or "pediatric nursing".'
+                systemInstruction: `You are an AI Exam Simulator for African student nurses. Your goal is to help them prepare for written exams. First, ask the user what topic they want to be quizzed on. If the user isn't sure, you MUST suggest a few common or high-yield topics (e.g., "Pharmacology," "Infection Control," "Maternal Health"). Once they provide a topic, generate one relevant question at a time (multiple choice, true/false, or short answer). After the user answers, tell them if they are correct or not, provide a detailed explanation for the correct answer, and then ask if they are ready for the next question. Maintain a supportive and encouraging tone.`,
+                welcomeMessage: 'Welcome to the Exam Simulator! What topic would you like to be quizzed on today?'
             };
         case 'OSCE':
             return {
@@ -19,38 +21,44 @@ const getModeConfig = (mode: TutorMode, subMode: OSCESubMode | NMCCBTSubMode | n
 
 **Your Core Directives:**
 
-1.  **Initiate the Session:** Start by warmly welcoming the user to the OSCE simulator for **${subMode || 'general'}** nursing. Ask them what kind of scenario they'd like to practice. If they are unsure, you MUST suggest a few common or challenging OSCE stations relevant to the specialty.
+1.  **Initiate the Session:** Start by welcoming the user. Ask what kind of scenario they'd like to practice. If they are unsure, suggest common OSCE stations relevant to **${subMode || 'general'}** nursing.
 
-2.  **Present a Multi-Stage Scenario:** Once a topic is chosen, present a detailed initial scenario. The scenarios you create should be dynamic and can evolve over several interactions. For example, a patient's vital signs might change, they might reveal new information, or a family member might interject.
+2.  **Present a Multi-Stage Scenario:** Create a detailed, dynamic scenario that can evolve over several interactions.
 
-3.  **Respond in Character:** Maintain your assigned role (patient, examiner, etc.) consistently and realistically throughout the interaction.
+3.  **Respond in Character:** Maintain your assigned role consistently.
 
-4.  **Provide Detailed, Exemplary Feedback:** After EACH of the user's responses, you MUST provide structured feedback in a separate section enclosed in triple square brackets. This feedback must be specific, constructive, and tailored to the **${subMode || 'general'}** nursing specialty.
+4.  **Provide Detailed Feedback:** After EACH user response, provide structured feedback in a separate section enclosed in triple square brackets.
 
     [[[
-    **Clinical Reasoning:** [Evaluate their thought process. For example: "You correctly identified the signs of hypoglycemia. A good next step would have been to also consider..."]. Compare their actions to best practices for the **${subMode || 'general'}** context.]
-    **Communication Skills:** [Assess their empathy and clarity. Provide specific examples. For instance: "Using the open-ended question 'How are you feeling now?' was excellent. To improve, you could also try a reflective statement like 'It sounds like this has been very difficult for you.' to build more rapport."].
-    **Procedural Steps:** [Comment on the correctness and sequence of any clinical procedures they describe. Give concrete examples. For example: "You correctly described preparing the injection site. A more detailed answer would also include the 'five rights' of medication administration before proceeding."].
-    **Suggestion for Improvement:** [Provide one concrete, actionable tip for what they could do better next time, directly related to the scenario.]
+    **Clinical Reasoning:** [Evaluate their thought process against best practices for the **${subMode || 'general'}** context.]
+    **Communication Skills:** [Assess their empathy and clarity. Provide specific examples, e.g., "Using the question 'How are you feeling?' was good. To improve, you could try a reflective statement like 'It sounds like this has been difficult.'"]
+    **Procedural Steps:** [Comment on the correctness of their described procedures. If their description is vague or misses a key action, instead of just pointing out the omission, **ask a clarifying question to prompt them**. For example: "You mentioned you would prepare the medication. Can you walk me through the specific checks you would perform right before administering it?"].
+    **Suggestion for Improvement:** [Provide one concrete, actionable tip.]
     ]]]
     This feedback is crucial for their learning.
 
-5.  **Maintain Safety:** You must not provide any prescriptive clinical instructions or medical advice that could be used on real patients. Frame all guidance as educational and for simulation purposes only. Always remind students to follow their institution's protocols and consult with their clinical instructors.`,
+5.  **Maintain Safety:** Do not provide prescriptive medical advice. Frame all guidance as educational and for simulation purposes only.`,
                 welcomeMessage: `Welcome to the advanced OSCE Simulator for **${subMode || 'General'}** Nursing! What kind of station would you like to practice today?`
             };
         case 'NCLEX':
             return {
-                systemInstruction: `You are an AI NCLEX exam tutor for nursing students. Your purpose is to provide realistic NCLEX-style questions, including multiple-choice, select-all-that-apply (SATA), and fill-in-the-blank. Ask the user for a topic. Present one question at a time. After they answer, provide the correct answer and a detailed rationale explaining why it's correct and why the other options are incorrect. Maintain an encouraging tone.`,
-                welcomeMessage: `Welcome to the NCLEX Simulator! What nursing topic would you like to practice today (e.g., Cardiology, Pharmacology, Maternal Health)?`
+                systemInstruction: `You are an AI NCLEX exam tutor. Your purpose is to provide realistic NCLEX-style questions. First, ask the user for a topic. If they are unsure, you MUST suggest a few high-yield NCLEX categories (e.g., "Management of Care," "Pharmacological and Parenteral Therapies," "Safety and Infection Control"). Present one question at a time. After they answer, provide the correct answer and a detailed rationale explaining why it's correct and why the other options are incorrect.`,
+                welcomeMessage: `Welcome to the NCLEX Simulator! What nursing topic would you like to practice today?`
             };
         case 'OET':
             return {
-                systemInstruction: `You are an AI tutor specializing in the Occupational English Test (OET) for nurses. You will help users practice the four sub-tests: Listening, Reading, Speaking, and Writing. Start by asking the user which sub-test they'd like to practice. For Speaking, you will act as an interlocutor in a role-play scenario. For Writing, you will provide a case note and ask the user to write a referral letter, then give feedback. For Reading and Listening, you will provide practice questions. Provide constructive feedback on language use, grammar, and relevance to the nursing context.`,
+                systemInstruction: `You are an AI tutor specializing in the Occupational English Test (OET) for nurses. Ask the user which sub-test they'd like to practice (Listening, Reading, Writing, Speaking).
+- **For Speaking**, act as an interlocutor in a role-play scenario.
+- **For Writing**, provide a case note and ask the user to write a referral letter.
+- **Provide Granular Feedback:** For writing and speaking, you MUST provide highly detailed, granular critiques. Break down feedback into sections: **Grammar**, **Vocabulary Choice**, and **Task Achievement**. For speaking, add a **Pronunciation** section, offering theoretical advice on common challenges with words the user typed. **Crucially, every piece of feedback MUST be illustrated with specific examples quoted directly from the user's response.** For example: "In your sentence, 'he is pain', the grammar could be improved. A better structure is 'he is *in* pain'. For vocabulary, instead of 'pain', a more clinical term like 'discomfort' or 'soreness' could be more precise."`,
                 welcomeMessage: `Hello! Ready to practice for the OET? Which sub-test would you like to work on: Listening, Reading, Writing, or Speaking?`
             };
         case 'IELTS':
             return {
-                systemInstruction: `You are an AI tutor for the IELTS exam, tailored for nursing professionals. You will help users practice the four modules: Listening, Reading, Writing (Academic), and Speaking. Ask the user which module they want to practice. For Speaking, you will act as an examiner, asking typical IELTS questions. For Writing, you will present a Task 1 (describing a graph/chart) or Task 2 (essay) prompt and provide feedback on their response, focusing on task achievement, coherence, lexical resource, and grammatical range. For Reading and Listening, provide practice exercises and explanations.`,
+                systemInstruction: `You are an AI tutor for the IELTS exam, tailored for nursing professionals. Ask the user which module they want to practice (Listening, Reading, Writing, Speaking).
+- **For Speaking**, act as an examiner, asking typical IELTS questions.
+- **For Writing**, present a Task 1 (describing a graph/chart) or Task 2 (essay) prompt.
+- **Provide Granular Feedback:** For writing and speaking, you MUST provide highly detailed, granular critiques. Break down feedback into sections: **Task Achievement**, **Coherence and Cohesion**, **Lexical Resource**, and **Grammatical Range and Accuracy**. For speaking, add a **Pronunciation** section, offering theoretical advice on common challenges with words the user typed. **Crucially, every piece of feedback MUST be illustrated with specific examples quoted directly from the user's response.** For example: "For Lexical Resource, you wrote 'the graph shows a good increase'. To use a higher-level vocabulary, you could say 'the graph illustrates a *significant* increase' or a '*substantial* rise'."`,
                 welcomeMessage: `Welcome to IELTS preparation for nurses. Which module are we practicing today: Listening, Reading, Writing, or Speaking?`
             };
         case 'NMC_CBT':
@@ -60,13 +68,26 @@ const getModeConfig = (mode: TutorMode, subMode: OSCESubMode | NMCCBTSubMode | n
             };
         case 'Jobs':
             return {
-                systemInstruction: `You are an AI Nursing Job Assistant. Your task is to help users find nursing jobs in Africa and abroad. Ask the user for their desired specialty, location (city/country), and years of experience. Use your search tool to find relevant job listings. Present the jobs in a clear, numbered list format, including the job title, hospital/clinic, location, and a brief summary. Crucially, after presenting the text, you MUST list all the source websites you used under a 'Sources:' heading. Do not invent jobs; use real-time search information.`,
-                welcomeMessage: `Welcome to the Nursing Job Finder! Tell me what you're looking for. What specialty, city, and country are you interested in?`,
+                systemInstruction: `You are an AI Nursing Job Assistant. Your task is to help users find nursing jobs. Ask the user for their desired nursing role (e.g., Registered Nurse, Nurse Practitioner, Nurse Educator, Clinical Nurse Specialist), specialty, location (city/country), and years of experience. Use your search tool to find relevant job listings. Present the jobs in a clear, numbered list format, including the job title, hospital/clinic, location, and a brief summary. Crucially, after presenting the text, you MUST list all the source websites you used under a 'Sources:' heading. Do not invent jobs; use real-time search information.`,
+                welcomeMessage: `Welcome to the Nursing Job Finder! Tell me what you're looking for (e.g., role, specialty, city/country).`,
                 tools: [{googleSearch: {}}]
             };
         case 'Career':
-            return {
-                systemInstruction: `You are an AI career and personal development coach for nurses in Africa. Your role is to provide guidance on topics like career progression, specialization, continuing education, leadership skills, resume building, and interview preparation. You should provide supportive, actionable advice. Start by asking the user what aspect of their career they'd like to discuss.`,
+             if (subMode === 'Resume Builder') {
+                return {
+                    systemInstruction: `You are an AI resume assistant for nurses. Your goal is to help the user build a professional nursing resume step-by-step. The user may provide an existing draft at the beginning of the conversation; use that as your starting point.
+1.  **Acknowledge Mode:** Acknowledge you are in "Resume Builder" mode.
+2.  **Ask for Info Sequentially:** Ask for one piece of information at a time (e.g., "Let's start with your contact information.", then "Now, tell me about your work experience.").
+3.  **Integrate and Format:** After each piece of information is provided, integrate it into a formatted resume draft.
+4.  **Present Full Draft:** After each update, you MUST present the *entire* current resume draft in a single markdown code block. For example: \`\`\`markdown\n# Jane Doe\n(123) 456-7890 | jane.doe@email.com\n\n## Summary\nA compassionate and skilled Registered Nurse...\n\`\`\`
+5.  **Handle Edits:** The user can ask for edits, like "Change the summary." You must make the change and show the updated full draft in the markdown code block.`,
+                    welcomeMessage: `Let's build your resume!`, // This is customized in the component logic
+                };
+            }
+            return { // Default: General Advice
+                systemInstruction: `You are an AI career and personal development coach for nurses in Africa. Your role is to provide guidance on topics like career progression, specialization, and interview preparation.
+1.  **Ask Clarifying Questions:** Before offering advice, you MUST ask clarifying follow-up questions to understand the user's specific goals and challenges.
+2.  **Provide Actionable Advice & Resources:** Your guidance must be supportive and actionable. When relevant, you MUST provide specific, helpful resources, including links to professional nursing organizations, relevant online courses (e.g., on Coursera), or articles from reputable nursing websites.`,
                 welcomeMessage: `Hello! Let's talk about your nursing career. What's on your mind? We can discuss career paths, further studies, leadership, or anything else to help you grow professionally.`
             };
         case 'Tutor':
@@ -78,14 +99,52 @@ const getModeConfig = (mode: TutorMode, subMode: OSCESubMode | NMCCBTSubMode | n
     }
 };
 
+const extractScenarioDetails = async (description: string): Promise<{ age: string; gender: string; chiefComplaint: string; }> => {
+    try {
+        if (!process.env.API_KEY) {
+            throw new Error("API_KEY environment variable not set.");
+        }
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: `Extract the patient's age, gender, and chief complaint from the following OSCE scenario description. If a detail is not mentioned, leave the corresponding field empty. Description: "${description}"`,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        age: { type: Type.STRING, description: "The patient's age, e.g., '35-year-old' or 'elderly'." },
+                        gender: { type: Type.STRING, description: "The patient's gender, e.g., 'male' or 'female'." },
+                        chiefComplaint: { type: Type.STRING, description: "The patient's main reason for the visit or problem, e.g., 'shortness of breath' or 'abdominal pain'." },
+                    },
+                    required: ["age", "gender", "chiefComplaint"],
+                },
+            },
+        });
+
+        const jsonStr = response.text.trim();
+        const details = JSON.parse(jsonStr);
+        return {
+            age: details.age || '',
+            gender: details.gender || '',
+            chiefComplaint: details.chiefComplaint || '',
+        };
+    } catch (error) {
+        console.error("Failed to extract scenario details:", error);
+        return { age: '', gender: '', chiefComplaint: '' };
+    }
+};
+
 
 const AITutor: React.FC = () => {
   const [mode, setMode] = useState<TutorMode>('Tutor');
-  const [subMode, setSubMode] = useState<OSCESubMode | NMCCBTSubMode | null>(null);
+  const [subMode, setSubMode] = useState<SubMode | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<{ [key: string]: string[] }>({});
+  const [showHistory, setShowHistory] = useState(false);
 
   const chatRef = useRef<Chat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -93,6 +152,17 @@ const AITutor: React.FC = () => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+  
+  useEffect(() => {
+    try {
+        const savedHistory = localStorage.getItem('nurse-ai-tutor-history');
+        if (savedHistory) {
+            setHistory(JSON.parse(savedHistory));
+        }
+    } catch (e) {
+        console.error("Failed to load history from localStorage", e);
+    }
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
@@ -119,10 +189,20 @@ const AITutor: React.FC = () => {
           }
         });
         
+        let initialMessage = welcomeMessage;
+        if (mode === 'Career' && subMode === 'Resume Builder') {
+            const draft = localStorage.getItem('nurse-resume-draft') || '';
+            if (draft) {
+                initialMessage = `Welcome back to the Resume Builder! Here is your saved draft. You can continue adding to it, or ask me to make changes.\n\n\`\`\`markdown\n${draft}\n\`\`\``;
+            } else {
+                initialMessage = 'Welcome to the Resume Builder! To begin, please tell me your full name and contact information (email, phone, city).';
+            }
+        }
+
         setMessages([
             {
               id: 'init',
-              text: welcomeMessage,
+              text: initialMessage,
               sender: MessageSender.AI
             }
         ]);
@@ -140,13 +220,35 @@ const AITutor: React.FC = () => {
   const handleModeChange = (newMode: TutorMode) => {
     if (newMode !== mode) {
         setMode(newMode);
-        setSubMode(null);
+        setSubMode(newMode === 'Career' ? CareerSubModes[0] : null);
     }
   };
 
-  const handleSubModeChange = (newSubMode: OSCESubMode | NMCCBTSubMode) => {
+  const handleSubModeChange = (newSubMode: SubMode) => {
     setSubMode(newSubMode);
   };
+  
+  const updateHistory = (query: string) => {
+    const newHistory = { ...history };
+    const modeHistory = newHistory[mode] || [];
+    const updatedModeHistory = [query, ...modeHistory.filter(item => item !== query)].slice(0, 10);
+    newHistory[mode] = updatedModeHistory;
+    setHistory(newHistory);
+    localStorage.setItem('nurse-ai-tutor-history', JSON.stringify(newHistory));
+  };
+  
+  const handlePlayAudio = (text: string) => {
+    if ('speechSynthesis' in window) {
+        // Remove markdown for cleaner speech
+        const cleanText = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[[*\]_`]/g, '');
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+    } else {
+        setError("Sorry, your browser does not support audio playback.");
+    }
+  };
+
 
   const generateAndPollVideo = async (prompt: string): Promise<string> => {
     if (!process.env.API_KEY) {
@@ -195,6 +297,7 @@ const AITutor: React.FC = () => {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    updateHistory(input);
     const currentInput = input;
     setInput('');
     setIsLoading(true);
@@ -210,7 +313,20 @@ const AITutor: React.FC = () => {
         setMessages(prev => [...prev, videoLoadingMessage]);
         
         try {
-            const videoPrompt = `A realistic, short, clinical simulation video for a nursing OSCE exam. The scenario is: "${currentInput}". Depict the patient and their immediate surroundings.`;
+            const scenarioDetails = await extractScenarioDetails(currentInput);
+            
+            let videoPrompt: string;
+            const detailsArray: string[] = [];
+            if (scenarioDetails.age) detailsArray.push(`a ${scenarioDetails.age} patient`);
+            if (scenarioDetails.gender) detailsArray.push(scenarioDetails.gender);
+            if (scenarioDetails.chiefComplaint) detailsArray.push(`presenting with ${scenarioDetails.chiefComplaint}`);
+            
+            if (detailsArray.length > 0) {
+                videoPrompt = `A realistic, short, clinical simulation video for a nursing OSCE exam. Depict ${detailsArray.join(', ')}. The patient is in a clinical setting. Show their condition and immediate surroundings based on the chief complaint. Original user request for context: "${currentInput}"`;
+            } else {
+                videoPrompt = `A realistic, short, clinical simulation video for a nursing OSCE exam. The scenario is: "${currentInput}". Depict the patient and their immediate surroundings.`;
+            }
+
             const videoUrl = await generateAndPollVideo(videoPrompt);
             
             const response = await chatRef.current.sendMessage({ message: currentInput });
@@ -255,8 +371,23 @@ const AITutor: React.FC = () => {
 
     // Default message handling for other modes
     try {
-      const response = await chatRef.current.sendMessage({ message: currentInput });
+      let messageToSend = currentInput;
+       if (mode === 'Career' && subMode === 'Resume Builder' && messages.length === 1) {
+            const draft = localStorage.getItem('nurse-resume-draft') || '';
+            if (draft) {
+                messageToSend = `Here is my current resume draft:\n\n${draft}\n\nNow, I want to:\n${currentInput}`;
+            }
+        }
+    
+      const response = await chatRef.current.sendMessage({ message: messageToSend });
       let aiText = response.text;
+
+      if (mode === 'Career' && subMode === 'Resume Builder') {
+        const resumeMatch = aiText.match(/```markdown\n([\s\S]*?)\n```/);
+        if (resumeMatch && resumeMatch[1]) {
+            localStorage.setItem('nurse-resume-draft', resumeMatch[1].trim());
+        }
+      }
 
       const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
       if (mode === 'Jobs' && groundingChunks && groundingChunks.length > 0) {
@@ -286,27 +417,35 @@ const AITutor: React.FC = () => {
   };
   
     const renderMessageText = (text: string) => {
+        const markdownCodeBlockRegex = /```markdown\n([\s\S]*?)\n```/g;
         const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
-        const parts = text.split(linkRegex);
 
-        if (parts.length <= 1) {
-            return text;
-        }
+        const parts = text.split(markdownCodeBlockRegex);
 
         return parts.map((part, index) => {
-            if (index % 3 === 1) { // Link text
-                const url = parts[index + 1];
+            if (index % 2 === 1) { // This is the markdown code block content
                 return (
-                    <a key={index} href={url} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline font-semibold">
-                        {part}
-                    </a>
+                    <pre key={index} className="bg-gray-200 p-3 rounded-lg my-2 text-sm text-gray-800 overflow-x-auto">
+                        <code>{part}</code>
+                    </pre>
                 );
             }
-            if (index % 3 === 2) { // URL
-                return null;
-            }
-            return part; // Plain text
-        }).filter(Boolean);
+
+            // Process this part for links
+            const linkParts = part.split(linkRegex);
+            return linkParts.map((linkPart, linkIndex) => {
+                 if (linkIndex % 3 === 1) { // Link text
+                    const url = linkParts[linkIndex + 1];
+                    return (
+                        <a key={`${index}-${linkIndex}`} href={url} target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline font-semibold">
+                            {linkPart}
+                        </a>
+                    );
+                }
+                if (linkIndex % 3 === 2) { return null; } // URL part, already handled
+                return linkPart; // Plain text
+            }).filter(Boolean);
+        });
     };
 
 
@@ -333,7 +472,7 @@ const AITutor: React.FC = () => {
                 </div>
               )}
               <div
-                className={`max-w-md p-4 rounded-2xl ${
+                className={`max-w-md p-4 rounded-2xl relative group ${
                   msg.sender === MessageSender.USER
                     ? 'bg-emerald-600 text-white rounded-br-none'
                     : 'bg-gray-100 text-gray-800 rounded-bl-none'
@@ -342,6 +481,15 @@ const AITutor: React.FC = () => {
                 <div className="text-sm whitespace-pre-wrap">
                     {msg.sender === MessageSender.AI ? renderMessageText(msg.text) : msg.text}
                 </div>
+                {(mode === 'OET' || mode === 'IELTS') && msg.sender === MessageSender.AI && (
+                    <button 
+                        onClick={() => handlePlayAudio(msg.text)} 
+                        className="absolute -bottom-3 -right-3 p-1.5 rounded-full bg-white text-emerald-600 border border-gray-200 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-emerald-50"
+                        aria-label="Play audio"
+                    >
+                        <SpeakerIcon className="w-4 h-4" />
+                    </button>
+                )}
               </div>
               {msg.sender === MessageSender.USER && (
                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
@@ -368,14 +516,38 @@ const AITutor: React.FC = () => {
         </div>
       </div>
        {error && <div className="p-4 text-center text-red-600 bg-red-100 border-t border-gray-200 text-sm">{error}</div>}
-      <div className="p-4 border-t border-gray-200 bg-white rounded-b-2xl">
-        <form onSubmit={handleSendMessage} className="flex items-center space-x-3">
+      <div className="p-4 border-t border-gray-200 bg-white rounded-b-2xl relative">
+        {showHistory && (history[mode]?.length > 0) && (
+            <div className="absolute bottom-full mb-2 left-4 right-4 bg-white border rounded-lg shadow-xl z-20">
+            <p className="p-2 text-xs font-bold text-gray-500 border-b">Search History</p>
+            <ul className="max-h-48 overflow-y-auto">
+                {history[mode].map((item, index) => (
+                <li key={index} 
+                    className="p-2 hover:bg-gray-100 cursor-pointer text-sm text-gray-700 truncate"
+                    onClick={() => { setInput(item); setShowHistory(false); }}>
+                    {item}
+                </li>
+                ))}
+            </ul>
+            </div>
+        )}
+        <form onSubmit={handleSendMessage} className="flex items-center space-x-3 relative">
+          {(history[mode]?.length > 0) && (
+             <button
+                type="button"
+                onClick={() => setShowHistory(prev => !prev)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                aria-label="Show search history"
+            >
+                <HistoryIcon className="w-5 h-5" />
+            </button>
+          )}
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about a nursing topic..."
-            className="flex-1 w-full px-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-full focus:ring-2 focus:ring-emerald-500 focus:outline-none focus:border-emerald-500 transition duration-200"
+            className="flex-1 w-full pl-10 pr-4 py-2 text-sm bg-gray-100 border border-gray-300 rounded-full focus:ring-2 focus:ring-emerald-500 focus:outline-none focus:border-emerald-500 transition duration-200"
             disabled={isLoading}
           />
           <button
